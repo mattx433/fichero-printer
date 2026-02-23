@@ -1,6 +1,6 @@
 # fichero-printer
 
-Python CLI tool and protocol documentation for the Fichero D11s thermal label printer.
+Web GUI, Python CLI, and protocol documentation for the Fichero D11s thermal label printer.
 
 Blog post: [Reverse Engineering Action's Cheap Fichero Labelprinter](https://blog.hamza.homes/reverse-engineering-fichero-label-printer/)
 
@@ -53,7 +53,15 @@ The printer uses a proprietary command set prefixed with `10 FF`. It borrows one
 
 The key discovery from decompiling the Fichero APK: the D11s is an "AiYin" device class that needs specific enable/stop commands (`10 FF FE 01` / `10 FF FE 45`). Using the wrong pair means the printer accepts image data silently but never actually prints.
 
-## Setup
+## Web GUI
+
+Open `web/index.html` in Chrome or Edge. No server needed, no dependencies, no build step.
+
+Click Connect, pair with the printer through the browser's Bluetooth dialog, and you're ready to print. The UI has two tabs: one for text labels (with a live 96px preview) and one for image labels (drag-and-drop). Device info, battery, and settings are all accessible from the same page.
+
+Requires Web Bluetooth, so Chrome/Edge/Opera only. Firefox and Safari don't support it.
+
+## CLI Setup
 
 Requires Python 3.10+ and uv. Turn on the printer and run:
 
@@ -73,7 +81,7 @@ You can also pass it per-command:
 uv run printer.py --address AA:BB:CC:DD:EE:FF info
 ```
 
-## Usage
+## CLI Usage
 
 ```
 uv run printer.py --help
