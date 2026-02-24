@@ -157,17 +157,17 @@ def main() -> None:
 
     p_text = sub.add_parser("text", help="Print text label")
     p_text.add_argument("text", nargs="+", help="Text to print")
-    p_text.add_argument("--density", type=int, default=1, choices=[0, 1, 2],
+    p_text.add_argument("--density", type=int, default=2, choices=[0, 1, 2],
                         help="Print density: 0=light, 1=medium, 2=thick")
     p_text.add_argument("--copies", type=int, default=1, help="Number of copies")
-    p_text.add_argument("--font-size", type=int, default=24, help="Font size in points")
+    p_text.add_argument("--font-size", type=int, default=30, help="Font size in points")
     p_text.add_argument("--label-height", type=int, default=240,
                         help="Label height in pixels (default: 240)")
     p_text.set_defaults(func=cmd_text)
 
     p_image = sub.add_parser("image", help="Print image file")
     p_image.add_argument("path", help="Path to image file")
-    p_image.add_argument("--density", type=int, default=1, choices=[0, 1, 2],
+    p_image.add_argument("--density", type=int, default=2, choices=[0, 1, 2],
                          help="Print density: 0=light, 1=medium, 2=thick")
     p_image.add_argument("--copies", type=int, default=1, help="Number of copies")
     p_image.set_defaults(func=cmd_image)
