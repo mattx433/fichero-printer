@@ -66,7 +66,7 @@ Requires Web Bluetooth, so Chrome/Edge/Opera only. Firefox and Safari don't supp
 Requires Python 3.10+ and uv. Turn on the printer and run:
 
 ```
-uv run printer.py info
+uv run fichero info
 ```
 
 This auto-discovers the printer via BLE scan. To skip scanning on subsequent runs, find your printer's address from the scan output and save it:
@@ -78,44 +78,67 @@ export FICHERO_ADDR=AA:BB:CC:DD:EE:FF
 You can also pass it per-command:
 
 ```
-uv run printer.py --address AA:BB:CC:DD:EE:FF info
+uv run fichero --address AA:BB:CC:DD:EE:FF info
 ```
 
 ## CLI Usage
 
 ```
-uv run printer.py --help
+uv run fichero --help
 ```
 
 ### Printing
 
 ```
-uv run printer.py text "Hello World"
-uv run printer.py text "Fragile" --density 2 --copies 3
-uv run printer.py image label.png
-uv run printer.py image label.png --density 1 --copies 2
+uv run fichero text "Hello World"
+uv run fichero text "Fragile" --density 2 --copies 3
+uv run fichero text "Big Label" --font-size 40 --label-height 180
+uv run fichero image label.png
+uv run fichero image label.png --density 1 --copies 2
 ```
 
 Density: 0=light, 1=medium (default), 2=thick.
 
+Text labels accept `--font-size` (default 24) and `--label-height` in pixels (default 240).
+
 ### Device info
 
 ```
-uv run printer.py info
-uv run printer.py status
+uv run fichero info
+uv run fichero status
 ```
 
 ### Settings
 
 ```
-uv run printer.py set density 2
-uv run printer.py set shutdown 30
-uv run printer.py set paper gap
+uv run fichero set density 2
+uv run fichero set shutdown 30
+uv run fichero set paper gap
 ```
 
 - `density` - how dark the print is. 0 is faint, 1 is normal, 2 is the darkest. Higher density uses more battery and can smudge on some label stock.
-- `shutdown` - how many minutes the printer waits before turning itself off when idle. Set it higher if you're tired of turning it back on between prints.
+- `shutdown` - how many minutes the printer waits before turning itself off when idle (1-480). Set it higher if you're tired of turning it back on between prints.
 - `paper` - what kind of label stock you're using. `gap` is the default, for labels with spacing between them (the printer detects the gap to know where to stop). `black` is for rolls with a black mark between labels. `continuous` is for receipt-style rolls with no markings.
+
+## Library Usage
+
+```python
+import asyncio
+from fichero import connect, PrinterNotFound
+
+async def main():
+    async with connect() as pc:
+        info = await pc.get_info()
+        print(info)
+
+asyncio.run(main())
+```
+
+The package exports `PrinterClient`, `connect`, `PrinterError`, `PrinterNotFound`, `PrinterTimeout`, `PrinterNotReady`, and `PrinterStatus`.
+
+## TODO
+
+- [ ] Emoji support in text labels. The default Pillow font has no emoji glyphs, so they render as squares. Needs two-pass rendering: split text into emoji/non-emoji segments, render emoji with Apple Color Emoji (macOS) or Noto Color Emoji (Linux) using `embedded_color=True`, then composite onto the label.
 
 ## Protocol and reverse engineering
 

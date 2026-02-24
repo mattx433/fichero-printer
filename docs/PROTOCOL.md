@@ -181,22 +181,6 @@ Fichero-branded printers:
 - Fichero 4575 -> DP_D1H (Lujiang)
 - Fichero 4437 -> DP_L81H (Lujiang)
 
-## Print sequence
-
-The exact command sequence used by the official Fichero app, extracted from the decompiled APK and verified against hardware:
-
-```
-1. 10 FF 10 00 nn              Set density (0-2)
-2. 10 FF 84 00                  Set paper type (gap label)
-3. 00 x12                       Wake up (12 null bytes)
-4. 10 FF FE 01                  Enable printer (AiYin)
-5. 1D 76 30 00 0C 00 yL yH     Raster image (ESC/POS GS v 0)
-   [pixel data...]              96px wide, 1-bit, MSB first
-6. 1D 0C                        Feed to next label
-7. 10 FF FE 45                  Stop print job (AiYin)
-                                 wait for 0xAA or "OK"
-```
-
 ## How this was reverse-engineered
 
 1. BLE enumeration with bleak to find services and characteristics
