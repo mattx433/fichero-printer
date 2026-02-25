@@ -11,6 +11,8 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from bleak import BleakClient, BleakGATTCharacteristic, BleakScanner
+from serial import Serial
+import sys
 
 # --- BLE identifiers ---
 
@@ -264,6 +266,53 @@ class PrinterClient:
             "shutdown": f"{await self.get_shutdown_time()} min",
         }
 
+class ClassicPrinterClient(PrinterClient):
+    """Client for Fichero/D11s printers in Bluetooth Classic mode"""
+
+    def __init__(self, client: Serial):
+        self.client = client
+        self._event = asyncio.Event()
+        self._lock = asyncio.Lock()
+    
+    async def start(self) -> None:
+        self.client.open()
+    
+    async def send(self, data: bytes, wait: bool = False, timeout: float = 0.5) -> bytes:
+        async with self._lock:
+            if wait:
+                self.client.reset_input_buffer()
+            self.client.write(data)
+            self.client.flush()
+            if wait:
+                self.client.read_all()
+                # As the printer does not include a string terminator in any of its responses,
+                # and the OS prevents us from seeing packet boundaries, we have no choice but
+                # to wait out the entire timeout and see what comes in by then.
+                await asyncio.sleep(timeout)
+                await asyncio.sleep(DELAY_NOTIFY_EXTRA)
+                self._buf = self.client.read_all()
+                if self._buf is None:
+                    raise PrinterTimeout(f"No response within {timeout}s")
+        return self._buf
+    
+    async def send_chunked(self, data: bytes, chunk_size: int = CHUNK_SIZE) -> None:
+        # While it is unlikely that this is needed as the OS splits SPP packets for us,
+        # we do it anyway just for correctness sake
+        for i in range(0, len(data), chunk_size):
+            chunk = data[i : i + chunk_size]
+            self.client.write(chunk)
+            await asyncio.sleep(DELAY_CHUNK_GAP)
+
+    async def stop_print(self) -> bool:
+        """AiYin stop: 10 FF FE 45. Waits for 0xAA or 'OK'."""
+        # Reimplemented to avoid long timeout when possible
+        self.client.reset_input_buffer()
+        self.client.timeout = 60
+        self.client.write(bytes([0x10, 0xFF, 0xFE, 0x45]))
+        r = self.client.read(2)
+        if len(r) > 0:
+            return r[0] == 0xAA or r.startswith(b"OK")
+        return False
 
 @asynccontextmanager
 async def connect(address: str | None = None) -> AsyncGenerator[PrinterClient, None]:
@@ -273,3 +322,15 @@ async def connect(address: str | None = None) -> AsyncGenerator[PrinterClient, N
         pc = PrinterClient(client)
         await pc.start()
         yield pc
+
+@asynccontextmanager
+async def connect_classic(port: str) -> AsyncGenerator[ClassicPrinterClient, None]:
+    """Attempt to discover printer, connect and yield a ready ClassicPrinterClient."""
+    client = Serial()
+    client.port = port
+    pc = ClassicPrinterClient(client)
+    await pc.start()
+    battery = await pc.get_battery()
+    if battery == -1:
+        print("Incorrect response when checking battery. Wrong port?", file=sys.stderr)
+    yield pc

@@ -19,6 +19,7 @@ from fichero.printer import (
     PrinterError,
     PrinterNotReady,
     connect,
+    connect_classic
 )
 
 
@@ -144,9 +145,11 @@ async def cmd_set(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    global connect
     parser = argparse.ArgumentParser(description="Fichero D11s Label Printer")
     parser.add_argument("--address", default=os.environ.get("FICHERO_ADDR"),
-                        help="BLE address (skip scanning, or set FICHERO_ADDR)")
+                        help="BLE address (skip scanning, or set FICHERO_ADDR) or COM port in Bluetooth Classic mode")
+    parser.add_argument("--classic", help="Use Bluetooth Classic", action="store_true")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_info = sub.add_parser("info", help="Show device info")
@@ -179,6 +182,8 @@ def main() -> None:
     p_set.set_defaults(func=cmd_set)
 
     args = parser.parse_args()
+    if args.classic:
+        connect = connect_classic
     try:
         asyncio.run(args.func(args))
     except PrinterError as e:
